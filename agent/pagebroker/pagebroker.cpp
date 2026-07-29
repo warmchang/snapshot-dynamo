@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <fstream>
+#include <iostream>
 #include <linux/un.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -291,6 +292,9 @@ int serve(const fs::path &socket_path, const fs::path &staging,
   });
   health.detach();
   TransactionManager manager(staging, scratch, budget);
+  std::cerr << "pagebroker listening on " << socket_path << " (staging="
+            << staging << ", scratch=" << scratch << ", budget=" << budget
+            << ")" << std::endl;
   for (;;) {
     int client = accept(server, nullptr, nullptr);
     if (client < 0)
