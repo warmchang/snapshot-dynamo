@@ -112,7 +112,7 @@ RUN gcc -O2 -Wall -Wextra -o /cuda-checkpoint-helper \
 # =============================================================================
 # Stage: CRIU Builder - Build CRIU with CUDA plugin
 # =============================================================================
-FROM ubuntu:24.04 AS criu-builder
+FROM ubuntu:22.04 AS criu-builder
 
 ARG CRIU_REPO
 ARG CRIU_REF
@@ -132,6 +132,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-c-compiler \
     protobuf-compiler \
     python3 \
+    python3-pip \
     python3-protobuf \
     libgnutls28-dev \
     libnftables-dev \
@@ -229,15 +230,18 @@ RUN if [ "${TARGETARCH}" != "amd64" ]; then \
       echo "ERROR: Snapshot requires x86_64 (cuda-checkpoint has no ${TARGETARCH} binary)" >&2; exit 1; \
     fi
 
-# Install minimal runtime dependencies for CRIU restore (nsrestore runs here via nsenter)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install minimal runtime dependencies for CRIU restore (nsrestore runs here via nsenter).
+# Ubuntu 22.04 calls this library libgnutls30; Ubuntu 24.04 renamed it.
+RUN apt-get update && \
+    if apt-cache show libgnutls30t64 >/dev/null 2>&1; then GNUTLS_PKG=libgnutls30t64; else GNUTLS_PKG=libgnutls30; fi && \
+    apt-get install -y --no-install-recommends \
     libbsd0 \
     libcap2 \
     libnet1 \
     libnl-3-200 \
     libnl-route-3-200 \
     libprotobuf-c1 \
-    libgnutls30t64 \
+    "$GNUTLS_PKG" \
     libnftables1 \
     iproute2 \
     iptables \

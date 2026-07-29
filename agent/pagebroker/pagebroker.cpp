@@ -157,7 +157,10 @@ TransactionManager::TransactionManager(fs::path staging, fs::path scratch,
 }
 void TransactionManager::cleanup() {
   fs::remove_all(staging_root_ / "tx");
-  fs::remove_all(scratch_root_);
+  if (fs::is_directory(scratch_root_)) {
+    for (const auto &entry : fs::directory_iterator(scratch_root_))
+      fs::remove_all(entry.path());
+  }
   fs::create_directories(staging_root_ / "tx");
   fs::create_directories(scratch_root_);
   transactions_.clear();
