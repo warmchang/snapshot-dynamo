@@ -12,7 +12,7 @@ int main() {
   std::filesystem::create_directories(source);
   std::ofstream(source / "image").write("checkpoint", 10);
   pagebroker::TransactionManager manager(root / "staging", root / "scratch",
-                                         100);
+                                         10);
   pagebroker::Request submit{pagebroker::Request::Operation::Submit, "tx-1",
                              source};
   auto ok = manager.submit(submit);
@@ -30,6 +30,10 @@ int main() {
   assert(concurrent_manager.abort(submit).ok);
   auto duplicate = manager.submit(submit);
   assert(!duplicate.ok);
+  auto second = manager.submit(
+      pagebroker::Request{pagebroker::Request::Operation::Submit, "tx-2",
+                          source, 100});
+  assert(!second.ok);
   auto committed = manager.commit(submit);
   assert(committed.ok);
   assert(!std::filesystem::exists(root / "staging/tx/tx-1"));

@@ -207,6 +207,10 @@ Response TransactionManager::submit(const Request &r) {
       return fail(r.transaction_id, "checkpoint copy exceeded staging budget");
     }
     auto copied_bytes = tree_size(path);
+    if (staged_bytes_ > budget_ || copied_bytes > budget_ - staged_bytes_) {
+      fs::remove_all(path);
+      return fail(r.transaction_id, "staging budget exceeded");
+    }
     transactions_.emplace(r.transaction_id,
                           TransactionState{{}, copied_bytes, false});
     staged_bytes_ += copied_bytes;
