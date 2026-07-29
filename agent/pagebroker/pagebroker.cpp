@@ -260,7 +260,7 @@ Response TransactionManager::wait_ready(const Request &r) {
           r.transaction_id,
           tx_path(staging_root_, r.transaction_id),
           scratch_root_ / r.transaction_id,
-                          {}};
+          {}};
 }
 Response TransactionManager::commit(const Request &r) {
   std::lock_guard lock(mutex_);
@@ -306,7 +306,7 @@ Response TransactionManager::commit(const Request &r) {
   }
   staged_bytes_ -= transaction->second.staged_bytes;
   transactions_.erase(transaction);
-    return {true, r.transaction_id, {}, {}, {}};
+  return {true, r.transaction_id, {}, {}, {}};
 }
 Response TransactionManager::abort(const Request &r) {
   std::lock_guard lock(mutex_);
