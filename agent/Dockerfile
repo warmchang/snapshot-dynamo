@@ -81,6 +81,16 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s" -o /nsrestore ./cmd/nsrestore
 
 # =============================================================================
+# PageBroker C++23 builder
+# =============================================================================
+FROM ubuntu:24.04 AS pagebroker-builder
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential protobuf-compiler libprotobuf-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace/pagebroker
+COPY pagebroker ./
+RUN make
+
+# =============================================================================
 # Stage: CUDA checkpoint helper builder
 # =============================================================================
 FROM ${AGENT_BASE_IMAGE} AS cuda-helper-builder
@@ -164,6 +174,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnl-3-200 \
     libnl-route-3-200 \
     libprotobuf-c1 \
+    libprotobuf32 \
     libgnutls30t64 \
     libnftables1 \
     iproute2 \
@@ -189,6 +200,7 @@ RUN chmod +x /usr/local/sbin/cuda-checkpoint /usr/local/bin/cuda-checkpoint-help
 # Copy the built binaries
 COPY --from=builder /snapshot-agent /usr/local/bin/snapshot-agent
 COPY --from=builder /nsrestore /usr/local/bin/nsrestore
+COPY --from=pagebroker-builder /workspace/pagebroker/pagebroker /usr/local/bin/pagebroker
 
 # Create directories
 RUN mkdir -p /checkpoints /var/run/snapshot
