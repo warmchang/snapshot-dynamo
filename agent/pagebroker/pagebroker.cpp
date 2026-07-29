@@ -196,11 +196,11 @@ Response TransactionManager::submit(const Request &r) {
     return fail(r.transaction_id, "invalid transaction id");
   if (!fs::is_directory(r.checkpoint_path))
     return fail(r.transaction_id, "checkpoint path is not a directory");
+  auto path = tx_path(staging_root_, r.transaction_id);
   try {
     auto bytes = tree_size(r.checkpoint_path);
     if (bytes > budget_)
       return fail(r.transaction_id, "staging budget exceeded");
-    auto path = tx_path(staging_root_, r.transaction_id);
     fs::remove_all(path);
     if (!copy_tree(r.checkpoint_path, path) || tree_size(path) > budget_) {
       fs::remove_all(path);
@@ -213,6 +213,8 @@ Response TransactionManager::submit(const Request &r) {
     return {true, r.transaction_id, path, scratch_root_ / r.transaction_id,
             {},   staged_bytes_};
   } catch (const fs::filesystem_error &e) {
+    std::error_code cleanup_error;
+    fs::remove_all(path, cleanup_error);
     return fail(r.transaction_id, e.what());
   }
 }
