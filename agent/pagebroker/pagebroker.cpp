@@ -315,14 +315,18 @@ Response TransactionManager::abort(const Request &r) {
   std::lock_guard lock(mutex_);
   auto transaction = transactions_.find(r.transaction_id);
   if (transaction != transactions_.end()) {
-    if (transaction->second.promote)
-      fs::remove_all(transaction->second.checkpoint.parent_path() /
-                    ("." + transaction->second.checkpoint.filename().string() +
-                     ".pagebroker-" + r.transaction_id));
-    else
-      fs::remove_all(tx_path(staging_root_, r.transaction_id));
-    fs::remove(staging_root_ / "tx" / (".checkpoint-" + r.transaction_id));
-    fs::remove_all(scratch_root_ / r.transaction_id);
+    try {
+      if (transaction->second.promote)
+        fs::remove_all(transaction->second.checkpoint.parent_path() /
+                      ("." + transaction->second.checkpoint.filename().string() +
+                       ".pagebroker-" + r.transaction_id));
+      else
+        fs::remove_all(tx_path(staging_root_, r.transaction_id));
+      fs::remove(staging_root_ / "tx" / (".checkpoint-" + r.transaction_id));
+      fs::remove_all(scratch_root_ / r.transaction_id);
+    } catch (const fs::filesystem_error &e) {
+      return fail(r.transaction_id, e.what());
+    }
     staged_bytes_ -= transaction->second.staged_bytes;
     transactions_.erase(transaction);
   }
