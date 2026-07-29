@@ -2,11 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "pagebroker.hpp"
 
-#include <cerrno>
 #include <cstring>
-#include <fcntl.h>
 #include <fstream>
-#include <iostream>
 #include <linux/un.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -58,7 +55,7 @@ bool skip(const char *&p, const char *end, std::uint64_t wire) {
   return false;
 }
 Response fail(const std::string &id, const std::string &message) {
-  return {false, id, {}, {}, message, 0};
+  return {false, id, {}, {}, message};
 }
 fs::path tx_path(const fs::path &root, const std::string &id) {
   return root / "tx" / id;
@@ -126,9 +123,6 @@ bool decode_request(const void *data, std::size_t size, Request &request,
         request.transaction_id = v;
       else
         request.checkpoint_path = v;
-    } else if (field == 4 && wire == 0) {
-      if (!get_varint(p, end, request.staging_budget_bytes))
-        return false;
     } else if (!skip(p, end, wire)) {
       error = "invalid protobuf field";
       return false;
@@ -152,8 +146,6 @@ std::string encode_response(const Response &r) {
     field_string(out, 4, r.scratch_path);
   if (!r.error.empty())
     field_string(out, 5, r.error);
-  if (r.staged_bytes)
-    field_varint(out, 6, r.staged_bytes);
   return out;
 }
 
@@ -215,7 +207,7 @@ Response TransactionManager::submit(const Request &r) {
                           TransactionState{{}, copied_bytes, false});
     staged_bytes_ += copied_bytes;
     return {true, r.transaction_id, path, scratch_root_ / r.transaction_id,
-            {},   staged_bytes_};
+            {}};
   } catch (const fs::filesystem_error &e) {
     std::error_code cleanup_error;
     fs::remove_all(path, cleanup_error);
@@ -254,7 +246,7 @@ Response TransactionManager::prepare_checkpoint(const Request &r) {
     }
     transactions_.emplace(r.transaction_id,
                           TransactionState{destination, 0, true});
-    return {true, r.transaction_id, path, scratch_root_ / r.transaction_id, {}, 0};
+    return {true, r.transaction_id, path, scratch_root_ / r.transaction_id, {}};
   } catch (const fs::filesystem_error &e) {
     return fail(r.transaction_id, e.what());
   }
@@ -268,8 +260,7 @@ Response TransactionManager::wait_ready(const Request &r) {
           r.transaction_id,
           tx_path(staging_root_, r.transaction_id),
           scratch_root_ / r.transaction_id,
-          {},
-          transaction->second.staged_bytes};
+                          {}};
 }
 Response TransactionManager::commit(const Request &r) {
   std::lock_guard lock(mutex_);
@@ -315,7 +306,7 @@ Response TransactionManager::commit(const Request &r) {
   }
   staged_bytes_ -= transaction->second.staged_bytes;
   transactions_.erase(transaction);
-  return {true, r.transaction_id, {}, {}, {}, 0};
+    return {true, r.transaction_id, {}, {}, {}};
 }
 Response TransactionManager::abort(const Request &r) {
   std::lock_guard lock(mutex_);
@@ -336,7 +327,7 @@ Response TransactionManager::abort(const Request &r) {
     staged_bytes_ -= transaction->second.staged_bytes;
     transactions_.erase(transaction);
   }
-  return {true, r.transaction_id, {}, {}, {}, 0};
+  return {true, r.transaction_id, {}, {}, {}};
 }
 
 int serve(const fs::path &socket_path, const fs::path &staging,
@@ -420,29 +411,10 @@ int serve(const fs::path &socket_path, const fs::path &staging,
   }
 }
 
-int index_checkpoint(const fs::path &checkpoint, const fs::path &output) {
-  if (!fs::is_directory(checkpoint))
-    return 1;
-  std::ofstream out(output);
-  if (!out)
-    return 1;
-  out << "apiVersion: snapshot.nvidia.com/v1alpha1\nkind: "
-         "PageBrokerManifest\nfiles:\n";
-  for (auto &e : fs::recursive_directory_iterator(checkpoint))
-    if (e.is_regular_file())
-      out << "  - path: " << fs::relative(e.path(), checkpoint).string()
-          << "\n    size: " << e.file_size() << "\n";
-  return out.good() ? 0 : 1;
-}
 } // namespace pagebroker
 
 #ifndef PAGEBROKER_TEST
 int main(int argc, char **argv) {
-  if (argc > 1 && std::string(argv[1]) == "index") {
-    if (argc != 4)
-      return 2;
-    return pagebroker::index_checkpoint(argv[2], argv[3]);
-  }
   if (argc != 2 || std::string(argv[1]) != "serve")
     return 2;
   return pagebroker::serve("/run/pagebroker/pagebroker.sock", "/staging",
