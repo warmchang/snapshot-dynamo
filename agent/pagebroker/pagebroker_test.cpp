@@ -43,8 +43,7 @@ int main() {
           .submit(submit);
   assert(!too_big.ok);
 
-  auto destination = root / "checkpoints" / "final";
-  std::filesystem::create_directories(destination.parent_path());
+  auto destination = root / "checkpoints" / "nested" / "final";
   pagebroker::TransactionManager checkpoint_manager(root / "staging3",
                                                      root / "scratch3", 100);
   pagebroker::Request prepare{pagebroker::Request::Operation::PrepareCheckpoint,

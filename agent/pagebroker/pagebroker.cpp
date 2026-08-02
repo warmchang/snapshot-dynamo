@@ -228,9 +228,8 @@ Response TransactionManager::prepare_checkpoint(const Request &r) {
   for (const auto &part : destination)
     if (part == "..")
       return fail(r.transaction_id, "checkpoint path must not contain '..'");
-  if (!fs::is_directory(destination.parent_path()))
-    return fail(r.transaction_id, "checkpoint parent is not a directory");
   try {
+    fs::create_directories(destination.parent_path());
     auto path = destination.parent_path() /
                 ("." + destination.filename().string() + ".pagebroker-" +
                  r.transaction_id);
