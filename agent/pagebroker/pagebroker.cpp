@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <fstream>
+#include <iostream>
 #include <linux/un.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
