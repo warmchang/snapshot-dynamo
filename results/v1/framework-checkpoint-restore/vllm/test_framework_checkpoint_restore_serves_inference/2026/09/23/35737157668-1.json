@@ -1,0 +1,39 @@
+{
+  "benchmarkVersion": 1,
+  "environment": {
+    "collectionError": "matrix job produced no valid benchmark artifact"
+  },
+  "error": {
+    "message": "no benchmark artifact was uploaded",
+    "phase": "artifact_collection"
+  },
+  "events": [],
+  "finishedAt": "2026-09-23T15:51:02.942Z",
+  "identity": {
+    "case": "vllm",
+    "runAttempt": 1,
+    "runId": "35737157668",
+    "suite": "framework-checkpoint-restore",
+    "test": "test_framework_checkpoint_restore_serves_inference"
+  },
+  "measurements": [
+    {
+      "displayName": "Full E2E test",
+      "missingReason": "test result artifact unavailable",
+      "name": "test.total.duration",
+      "status": "incomplete",
+      "unit": "seconds",
+      "value": null
+    }
+  ],
+  "outcome": "infrastructure_failed",
+  "schemaVersion": 1,
+  "source": {
+    "commit": "ba4a1b583a1ff5ec8ac6d333089328bb4e06be6d",
+    "event": "schedule",
+    "ref": "refs/heads/main",
+    "runUrl": "https://github.com/warmchang/snapshot-dynamo/actions/runs/35737157668",
+    "snapshotTag": null
+  },
+  "startedAt": "2026-09-23T15:51:02.942Z"
+}
